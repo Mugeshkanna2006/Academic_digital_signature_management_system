@@ -12,7 +12,7 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/documents/my?limit=5').then(({ data }) => {
+    api.get('documents/my?limit=5').then(({ data }) => {
       setDocs(data.documents || []);
     }).finally(() => setLoading(false));
   }, []);
@@ -26,7 +26,7 @@ export default function StudentDashboard() {
 
   const handleDownload = async (docId, fileName) => {
     try {
-      const res = await api.get(`/documents/${docId}/download`, { responseType: 'blob' });
+      const res = await api.get(`documents/${docId}/download`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
       a.href = url;

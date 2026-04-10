@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
     const verifyToken = async () => {
       if (token) {
         try {
-          const { data } = await api.get('/auth/me');
+          const { data } = await api.get('auth/me');
           setUser(data.user);
         } catch {
           logout();

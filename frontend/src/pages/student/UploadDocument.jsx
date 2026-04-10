@@ -52,7 +52,7 @@ export default function UploadDocument() {
     setLoading(true);
     setProgress(0);
     try {
-      await api.post('/documents/upload', formData, {
+      await api.post('documents/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (e) => setProgress(Math.round((e.loaded * 100) / e.total)),
       });

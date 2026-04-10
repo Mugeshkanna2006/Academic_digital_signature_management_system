@@ -20,7 +20,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', form);
+      const { data } = await api.post('auth/login', form);
       login(data.user, data.token);
       toast.success(`Welcome back, ${data.user.name}!`);
       navigate(data.user.role === 'admin' ? '/admin' : '/dashboard');

@@ -3,9 +3,10 @@ import Sidebar from '../../components/Sidebar';
 import StatusBadge from '../../components/StatusBadge';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
-import { FiSearch, FiCheck, FiX, FiEye, FiDownload, FiRefreshCw } from 'react-icons/fi';
+import { FiSearch, FiCheck, FiX, FiEye, FiDownload, FiRefreshCw, FiExternalLink } from 'react-icons/fi';
 
 const DOC_ICON = { bonafide: '📋', transcript: '📄', certificate: '🏆', report: '📝', other: '📁' };
+const BACKEND = 'http://localhost:5001';
 
 export default function DocumentReview() {
   const [docs, setDocs] = useState([]);
@@ -88,9 +89,10 @@ export default function DocumentReview() {
       <main className="main-content">
         <div className="page-header">
           <h1>Document Requests</h1>
-          <p>Review, approve, reject and digitally sign student documents.</p>
+          <p>Review, approve, reject and digitally sign student certificates.</p>
         </div>
 
+        {/* ── Filter Bar ── */}
         <div className="filter-bar">
           <div className="search-box">
             <FiSearch className="search-icon" size={16} />
@@ -106,6 +108,7 @@ export default function DocumentReview() {
           <button className="btn btn-outline btn-sm" onClick={fetchDocs}><FiRefreshCw size={14} /></button>
         </div>
 
+        {/* ── Document Table ── */}
         <div className="card">
           {loading ? (
             <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner-ring" style={{ margin: '0 auto' }} /></div>
@@ -145,24 +148,42 @@ export default function DocumentReview() {
                       <td style={{ fontSize: 12 }}>{new Date(doc.createdAt).toLocaleDateString('en-IN')}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          <button className="btn btn-outline btn-sm" title="View Details" onClick={() => { setSelectedDoc(doc); setModal('view'); }}>
+                          {/* View Details Modal */}
+                          <button
+                            className="btn btn-outline btn-sm"
+                            title="View Details"
+                            onClick={() => { setSelectedDoc(doc); setModal('view'); }}
+                          >
                             <FiEye size={13} />
                           </button>
+                          {/* Open Certificate in New Tab */}
+                          <a
+                            href={`${BACKEND}${doc.fileUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-outline btn-sm"
+                            title="Open Certificate"
+                            style={{ color: 'var(--accent)' }}
+                          >
+                            <FiExternalLink size={13} />
+                          </a>
+                          {/* Review Actions */}
                           {(doc.status === 'pending' || doc.status === 'under_review') && <>
                             {doc.status === 'pending' && (
                               <button className="btn btn-outline btn-sm" title="Mark Under Review" onClick={() => handleSetReview(doc._id)} style={{ color: 'var(--info)' }}>
                                 🔍
                               </button>
                             )}
-                            <button className="btn btn-success btn-sm" title="Approve" onClick={() => openAction(doc, 'approve')}>
+                            <button className="btn btn-success btn-sm" title="Approve & Sign" onClick={() => openAction(doc, 'approve')}>
                               <FiCheck size={13} />
                             </button>
                             <button className="btn btn-danger btn-sm" title="Reject" onClick={() => openAction(doc, 'reject')}>
                               <FiX size={13} />
                             </button>
                           </>}
+                          {/* Download Signed */}
                           {doc.status === 'approved' && (
-                            <button className="btn btn-success btn-sm" onClick={() => handleDownload(doc)}>
+                            <button className="btn btn-success btn-sm" title="Download Signed PDF" onClick={() => handleDownload(doc)}>
                               <FiDownload size={13} />
                             </button>
                           )}
@@ -186,28 +207,72 @@ export default function DocumentReview() {
           )}
         </div>
 
-        {/* ---- VIEW MODAL ---- */}
+        {/* ════════════════════════════════════════
+            VIEW MODAL — Certificate Preview
+        ════════════════════════════════════════ */}
         {modal === 'view' && selectedDoc && (
           <div className="modal-overlay" onClick={() => setModal(null)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal" style={{ maxWidth: 700 }} onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>📄 Document Details</h3>
+                <h3>📄 {selectedDoc.title}</h3>
                 <button className="modal-close" onClick={() => setModal(null)}>✕</button>
               </div>
               <div className="modal-body">
-                <div style={{ display: 'grid', gap: 12 }}>
+
+                {/* Certificate Preview */}
+                <div style={{ marginBottom: 16, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
+                  {selectedDoc.mimeType === 'application/pdf' ? (
+                    <iframe
+                      src={`${BACKEND}${selectedDoc.fileUrl}`}
+                      title="Certificate Preview"
+                      style={{ width: '100%', height: 360, border: 'none', display: 'block' }}
+                    />
+                  ) : (
+                    <img
+                      src={`${BACKEND}${selectedDoc.fileUrl}`}
+                      alt="Certificate Preview"
+                      style={{ width: '100%', maxHeight: 360, objectFit: 'contain', display: 'block', padding: 12 }}
+                    />
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                  <a
+                    href={`${BACKEND}${selectedDoc.fileUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline btn-sm"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    <FiExternalLink size={13} /> Open in New Tab
+                  </a>
+                  {selectedDoc.status === 'approved' && selectedDoc.signedFileUrl && (
+                    <a
+                      href={`${BACKEND}${selectedDoc.signedFileUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-success btn-sm"
+                    >
+                      <FiDownload size={13} /> Download Signed PDF
+                    </a>
+                  )}
+                </div>
+
+                {/* Metadata */}
+                <div style={{ display: 'grid', gap: 0 }}>
                   {[
-                    ['Student', selectedDoc.userId?.name],
-                    ['Email', selectedDoc.userId?.email],
-                    ['Roll No.', selectedDoc.userId?.rollNumber || '—'],
-                    ['Department', selectedDoc.userId?.department || '—'],
-                    ['Title', selectedDoc.title],
-                    ['Type', selectedDoc.documentType],
-                    ['Status', <StatusBadge status={selectedDoc.status} />],
+                    ['Student',     selectedDoc.userId?.name],
+                    ['Email',       selectedDoc.userId?.email],
+                    ['Roll No.',    selectedDoc.userId?.rollNumber || '—'],
+                    ['Department',  selectedDoc.userId?.department || '—'],
+                    ['Type',        selectedDoc.documentType],
+                    ['File Name',   selectedDoc.fileName],
+                    ['File Size',   selectedDoc.fileSize ? `${(selectedDoc.fileSize / 1024).toFixed(1)} KB` : '—'],
+                    ['Status',      <StatusBadge status={selectedDoc.status} />],
                     ['Description', selectedDoc.description || '—'],
-                    ['File', selectedDoc.fileName],
-                    ['Submitted', new Date(selectedDoc.createdAt).toLocaleString('en-IN')],
-                    selectedDoc.remarks && ['Remarks', selectedDoc.remarks],
+                    ['Submitted',   new Date(selectedDoc.createdAt).toLocaleString('en-IN')],
+                    selectedDoc.remarks    && ['Remarks',     selectedDoc.remarks],
                     selectedDoc.reviewedAt && ['Reviewed At', new Date(selectedDoc.reviewedAt).toLocaleString('en-IN')],
                     selectedDoc.signatureData?.signerName && ['Signed By', selectedDoc.signatureData.signerName],
                   ].filter(Boolean).map(([k, v]) => (
@@ -229,7 +294,9 @@ export default function DocumentReview() {
           </div>
         )}
 
-        {/* ---- APPROVE MODAL ---- */}
+        {/* ════════════════════════════════════════
+            APPROVE MODAL
+        ════════════════════════════════════════ */}
         {modal === 'approve' && selectedDoc && (
           <div className="modal-overlay" onClick={() => setModal(null)}>
             <div className="modal" onClick={e => e.stopPropagation()}>
@@ -238,7 +305,7 @@ export default function DocumentReview() {
                 <button className="modal-close" onClick={() => setModal(null)}>✕</button>
               </div>
               <div className="modal-body">
-                <div className="alert alert-info">📄 You are approving: <strong>{selectedDoc.title}</strong> by <strong>{selectedDoc.userId?.name}</strong></div>
+                <div className="alert alert-info">📄 Approving: <strong>{selectedDoc.title}</strong> by <strong>{selectedDoc.userId?.name}</strong></div>
                 <div className="form-group">
                   <label className="form-label">Signature Text (Designation)</label>
                   <input className="form-input" value={actionForm.signatureText} onChange={e => setActionForm(p => ({ ...p, signatureText: e.target.value }))} placeholder="e.g. Academic Administration" />
@@ -259,7 +326,9 @@ export default function DocumentReview() {
           </div>
         )}
 
-        {/* ---- REJECT MODAL ---- */}
+        {/* ════════════════════════════════════════
+            REJECT MODAL
+        ════════════════════════════════════════ */}
         {modal === 'reject' && selectedDoc && (
           <div className="modal-overlay" onClick={() => setModal(null)}>
             <div className="modal" onClick={e => e.stopPropagation()}>
@@ -268,7 +337,7 @@ export default function DocumentReview() {
                 <button className="modal-close" onClick={() => setModal(null)}>✕</button>
               </div>
               <div className="modal-body">
-                <div className="alert alert-error">You are rejecting: <strong>{selectedDoc.title}</strong> by <strong>{selectedDoc.userId?.name}</strong></div>
+                <div className="alert alert-error">Rejecting: <strong>{selectedDoc.title}</strong> by <strong>{selectedDoc.userId?.name}</strong></div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Reason for Rejection *</label>
                   <textarea className="form-textarea" value={actionForm.remarks} onChange={e => setActionForm(p => ({ ...p, remarks: e.target.value }))} placeholder="Explain why this document is being rejected..." rows={4} />

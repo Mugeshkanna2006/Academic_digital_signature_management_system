@@ -94,24 +94,50 @@ const connectDB = async () => {
         '  ▶ Your cluster ID in MONGO_URI is incorrect.',
         '  ▶ Get the correct string from Atlas → Connect → Drivers.',
         '  ▶ It looks like:  cluster0.ab1xyz.mongodb.net',
-        '  ▶ Also make sure:  Atlas → Network Access → 0.0.0.0/0',
+        '  ▶ Also check:     Atlas → Network Access → 0.0.0.0/0',
       ]);
-    } else if (error.message.match(/Authentication failed|bad auth/)) {
+    } else if (error.message.match(/Authentication failed|bad auth/i)) {
       printBox([
-        '🔴 Cause: Wrong username or password.',
+        '🔴 Cause: Wrong username OR password in MONGO_URI.',
         '',
-        '  ▶ Atlas → Database Access → Edit user → Reset password.',
-        '  ▶ Update MONGO_URI password in backend/.env.',
+        '  HOW TO FIX (2 minutes):',
+        '',
+        '  1. Go to  https://cloud.mongodb.com',
+        '     → Database Access → find your user → click Edit',
+        '     → Edit Password → enter a NEW password → Update User',
+        '',
+        '  2. Open  backend/.env  and update:',
+        '     MONGO_URI=mongodb+srv://<user>:<NEW_PASSWORD>@<cluster>.mongodb.net/adms?retryWrites=true&w=majority',
+        '',
+        '  3. Make sure the user role is:',
+        '     "Atlas Admin" OR "Read and write to any database"',
+        '',
+        '  Common mistake: password has special chars (@, #, %).',
+        '  If so → URL-encode them, or use a simpler password.',
+        '',
+        '  ▶ Atlas → Network Access → must have  0.0.0.0/0  entry.',
       ]);
     } else if (error.message.includes('timed out')) {
       printBox([
         '🔴 Cause: Connection timed out.',
         '',
-        '  ▶ Atlas → Network Access → Add IP → 0.0.0.0/0',
+        '  ▶ Atlas → Network Access → Add IP Address → 0.0.0.0/0',
+        '  ▶ Make sure your internet is connected.',
+      ]);
+    } else {
+      printBox([
+        '🔴 Unexpected connection error.',
+        '',
+        `  Error: ${error.message}`,
+        '',
+        '  ▶ Double-check MONGO_URI in backend/.env',
+        '  ▶ Verify Atlas cluster is not paused (free tier pauses after 60d)',
       ]);
     }
 
-    console.error('\n   MONGO_URI (first 70 chars):', uri.slice(0, 70) + '...\n');
+    // Show safe partial URI (hide password)
+    const safeUri = uri.replace(/:([^@]+)@/, ':****@');
+    console.error('\n   MONGO_URI (password hidden):', safeUri, '\n');
     process.exit(1);
   }
 };
